@@ -208,7 +208,7 @@ proc handle_super_position { line } {
 #if have only directory as destination - use source file name
 set only_fname_src [file tail $fname_src]
 #get file name without ext for many purposes
-regexp {(.+).(mm|h)$} $only_fname_src match fname_no_ext
+regexp {(.+).(mm|m|h)$} $only_fname_src match fname_no_ext
 if {[file isdirectory $fname_dst] == 1} {
 	#set newname [regsub {(.+).mm$} $only_fname_src "\\1.cpp"]
 	set newname $fname_no_ext.cpp
@@ -260,7 +260,7 @@ foreach line [split [read $filefrom] \n] {
 
 # add at the end of *.h file
 if {$fileHas_H_Extension} {
-	puts $fileto "#endif $fnamecomb"
+	puts $fileto "#endif //$fnamecomb"
 }
 flush $fileto
 close $fileto
