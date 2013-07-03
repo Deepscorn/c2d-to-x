@@ -140,9 +140,9 @@ proc handle_replace_many_per_line { line classname} {
 # line passed by value
 	#-(CCLayer*) runRecipe;
 	#CCLayer* runRecipe();
-	set line [regsub {[-][(]([A-Za-z]+[*]*)[)] *([A-Za-z]+)( *[;\{])} "$line" "\\1 $classname\:\:\\2()\\3" ]
+	set line [regsub {[-+] *[(]([A-Za-z]+[*]*)[)] *([A-Za-z]+)( *[;\{])} "$line" "\\1 $classname\:\:\\2()\\3" ]
 	#-(id)initWithTotalParticles:(int)p;
-	set line [regsub {[-][(]([A-Za-z]+[*]*)[)] *([A-Za-z]+):\((.+?)\)([A-Za-z]+)} "$line" "\\1 $classname\:\:\\2(\\3 \\4)" ]
+	set line [regsub {[-+] *[(]([A-Za-z]+[*]*)[)] *([A-Za-z]+):\((.+?)\) *([A-Za-z]+)} "$line" "\\1 $classname\:\:\\2(\\3 \\4)" ]
 	
 	#@"ParticleExplosion"
 	#"ParticleExplosion"
@@ -208,12 +208,15 @@ proc handle_super_position { line } {
 #if have only directory as destination - use source file name
 set only_fname_src [file tail $fname_src]
 #get file name without ext for many purposes
-regexp {(.+).(mm|m|h)$} $only_fname_src match fname_no_ext
+regexp {(.+).(mm|m|h)$} $only_fname_src match fname_no_ext f_ext
 if {[file isdirectory $fname_dst] == 1} {
-	#set newname [regsub {(.+).mm$} $only_fname_src "\\1.cpp"]
-	set newname $fname_no_ext.cpp
+	set f_ext [regsub {(mm|m)} $f_ext {.cpp}]
+	set newname $fname_no_ext.$f_ext
 	set fname_dst $fname_dst/$newname
 }
+
+set filefrom [open  $fname_src r]
+
 #check if we have *.h or *.mm file
 set fileHas_H_Extension [regexp {.h$} $only_fname_src]
 #open destination file
@@ -228,7 +231,6 @@ if {$fileHas_H_Extension} {
 }
 
 # main replace-loop
-set filefrom [open  $fname_src r]
 
 #lastline and errflag are used when it is necessary to replace until ";" and
 #line doesn't contain ";"
