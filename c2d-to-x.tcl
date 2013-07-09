@@ -66,7 +66,7 @@ set delimeters {[ \n\t\(\);\-\\.\\*/+%!:\,]}
 # "@implementation" will be deleted too
 set elements_del [list "@end"]
 #
-set dev_mode 1
+set dev_mode 0
 
 # path to file to convert
 set fname_src [lindex $argv 0]
