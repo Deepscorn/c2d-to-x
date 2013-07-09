@@ -59,13 +59,14 @@
 # Include class methods in {}
 
 # REPLACES LIST - modify on your own
-set elements [list "@interface" "class" "id" "bool" "self" "this" "super" "this" "nil" "NULL" "YES" "true" "NO" "false" "#import" "#include" "NSString" "CCString" "NSLog" "CCLOG" "CGSize" "CCSize" "NSString" "CCString" "NSUInteger" "CCInteger" "unichar" "char" "NSMakeRange" "CCRangeMake" ">string\\(\\)" ">getString()"]
+set elements [list "@interface" "class" "@class" "class" "id" "bool" "self" "this" "super" "this" "nil" "NULL" "YES" "true" "NO" "false" "#import" "#include" "NSString" "CCString" "NSLog" "CCLOG" "CGSize" "CCSize" "NSString" "CCString" "NSUInteger" "CCInteger" "NSObject" "CCObject" "NSSet" "CCSet" "NSMutableArray" "CCArray" "CGRectMake" "CCRectMake" "unichar" "char" "NSMakeRange" "CCRangeMake" "NSArray" "CCArray" ">string\\(\\)" ">getString()" "UIColor" "ccColor4B" "CGFloat" "CCFloat"]
 # only this delimeters may delimit elements
 set delimeters {[ \n\t\(\);\-\\.\\*/+%!:\,]}
 #if line starts with one of these elements - it will be deleted
 # "@implementation" will be deleted too
-set elements_del [list "^@end"]
+set elements_del [list "@end"]
 #
+set dev_mode 1
 
 # path to file to convert
 set fname_src [lindex $argv 0]
@@ -79,16 +80,14 @@ proc handle_del { line } {
 # line passed by value
     global classname
 	global elements_del
+	global delimeters
 	
 	if { [regexp {(.+)(@implementation) +?(.+?)\n(.+)} $line _ s0 _ classname s1 ] } {
 	  set classname $classname\:\:
 	  set line $s0$s1
 	}
 	foreach subel $elements_del {
-		if {[regexp $subel $line]} {
-			set line ""
-			break
-		}
+		regsub -all $subel$delimeters $line "" line
 	}
 	return $line
 }
@@ -116,7 +115,7 @@ proc handle_replace_at_last { line } {
 	#must be THE LAST!
 	#@interface ParticleWaterfall : CCParticleRain {}
 	#@interface ParticleWaterfall : public CCParticleRain {}
-	set line [regsub {class +([A-Za-z]+) *[:] *([A-Za-z]+)} $line "\\1: public \\2"]
+	set line [regsub {class +([A-Za-z]+) *[:] *([A-Za-z]+)} $line "class \\1: public \\2"]
 	return $line
 }
 #end - FUNCTIONS, WHICH DOES NOT REQUIRE ";"
@@ -154,7 +153,7 @@ proc handle_replace_many_per_line { line cname} {
 	set line [regsub {[-+] *[(](\w+[*]*)[)] *(\w+): *[(]([^\)]+)[)] *(\w+)} "$line" "\\1 $cname\\2(\\3 \\4)" ]
 	# ) didFinishAllTextWithPageCount:(int)pc
 	# , int pc )
-	regsub -all {[)] *\w+: *[(]([^\)]+)[)] *(\w+)} $line ", \\1 \\2 )" line
+	while { [regsub -all {[)][ \n\t]*\w+: *[(]([^\)]+)[)] *(\w+)} $line ", \\1 \\2 )" line]} {}
 	
 	#@"ParticleExplosion"
 	#"ParticleExplosion"
@@ -190,9 +189,22 @@ proc handle_super_position { line } {
 	}
 	return $line
 }
+proc handle_dev_replaces { line } {
+  set to_add "\n#include \"cocos2d.h\"\nUSING_NS_CC;\n\n"
+  regsub {((#include[^\n]+[\n]+)+)} $line "/*\\1*/$to_add" line
+  return $line
+}
 # replace functions - end
 
 # main
+# fool-checks
+if {[file isdirectory $fname_src]} {
+  puts "Error: arg(1), source can't be folder."
+  foreach t_arg $argv {
+    puts "arg $t_arg"
+  }
+}
+
 #if have only directory as destination - use source file name
 set only_fname_src [file tail $fname_src]
 #get file name without ext for many purposes
@@ -221,8 +233,10 @@ if {$fileHas_H_Extension} {
 # main replace-loop
 
 set classname ""
-set in_str [read $filefrom]
-while { [regexp {(.+?[;\{\}])(.*$)} $in_str _ line in_str] == 1 } {
+set in_str [read $filefrom]\;
+# added separator for our algorithm
+
+while { [regexp {(.+?[;\{\}])(.*$)} $in_str _ line in_str] == 1} {
 
 	#DELETE
 	set line [handle_del $line]
@@ -236,10 +250,17 @@ while { [regexp {(.+?[;\{\}])(.*$)} $in_str _ line in_str] == 1 } {
 	#REPLACE - no matter where is ";"
 	set line [handle_replace_one $line]
 	set line [handle_replace_at_last $line]
+	if { $dev_mode == 1 } {
+	  set line [handle_dev_replaces $line]
+	}
 	
 	puts -nonewline $fileto $line
 }
 #end - for each ";"
+
+#remove separator
+seek $fileto -1 current
+puts $fileto "" 
 
 # add at the end of *.h file
 if {$fileHas_H_Extension} {
