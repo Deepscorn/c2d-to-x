@@ -1,5 +1,5 @@
 # Convert all the *.h / *.m / *.mm files in directory and save to another one
-# example call: tclsh dir-to-x.tcl {C:\TheGame\Classes} {C:\MyProj\Classes}
+# example call (for windows): tclsh dir-to-x.tcl {C:\TheGame\Classes} {C:\MyProj\Classes}
 # Please, read c2d-to-x script for more info.
 
 set src_dir [lindex $argv 0]
